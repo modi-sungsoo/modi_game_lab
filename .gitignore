@@ -1,0 +1,10 @@
+.claude/
+__pycache__/
+# 영상·오디오 결과물은 Desktop\유튜브 에 둔다 (용량 때문에 git 에 안 올림)
+*.mp4
+*.mkv
+*.mp3
+*.wav
+*.vrew
+youtube/*/modi_tmp/
+youtube/*/*_txt/
