@@ -1,5 +1,5 @@
 """ElevenLabs API로 대본(lines.json) 줄마다 나레이션 mp3를 바로 만든다. 글자별 시각(alignment)도 같은 이름의 .json으로 저장한다.
-API 키는 환경변수 ELEVENLABS_API_KEY 에서만 읽는다 (저장소에 넣지 않음).
+API 키는 저장소 루트의 .env.local (ElevenLabs CLI onboard 로 만듦, gitignore 됨) 또는 환경변수 ELEVENLABS_API_KEY 에서 읽는다.
 
 사용:
   python narrate_api.py voices                                   # 내 보이스 이름·ID 목록
@@ -7,24 +7,18 @@ API 키는 환경변수 ELEVENLABS_API_KEY 에서만 읽는다 (저장소에 넣
     줄번호를 안 주면 전체. 이미 있는 파일은 건너뛴다. --dry-run 은 만들 파일과 글자 수만 보여 준다(키 불필요).
 파일 이름은 1편과 같다: '{대본 문장}{suffix}.mp3' (윈도 파일명 금지 문자만 뺌)."""
 import base64, json, os, re, sys
-import requests
+from dotenv import load_dotenv
+from elevenlabs import ElevenLabs
+from elevenlabs.core.api_error import ApiError
 
-API = "https://api.elevenlabs.io/v1"
-MODEL = "eleven_multilingual_v2"   # 한국어 지원 모델. 1편에서 웹으로 쓴 모델과 다르면 바꾼다
-
-
-def key():
-    k = os.environ.get("ELEVENLABS_API_KEY")
-    if not k:
-        sys.exit("환경변수 ELEVENLABS_API_KEY 가 없습니다. ElevenLabs 웹 > Developers > API Keys 에서 만든 키를 설정하세요.")
-    return {"xi-api-key": k}
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env.local"))
+MODEL = "eleven_v4"   # 최신·최고 품질. 1편 웹 생성 때와 목소리가 다르게 들리면 eleven_multilingual_v2 로 바꿔 비교한다
 
 
-def call(method, path, **kw):
-    r = requests.request(method, API + path, headers=key(), timeout=120, **kw)
-    if r.status_code != 200:
-        sys.exit(f"ElevenLabs {r.status_code}: {r.text[:300]}")
-    return r.json()
+def client():
+    if not os.environ.get("ELEVENLABS_API_KEY"):
+        sys.exit("ELEVENLABS_API_KEY 가 없습니다. 저장소 루트에서 npx -y @elevenlabs/cli@latest onboard init 을 실행하세요.")
+    return ElevenLabs()
 
 
 def name(line, suffix):
@@ -33,8 +27,8 @@ def name(line, suffix):
 
 def main(argv):
     if argv[:1] == ["voices"]:
-        for v in call("GET", "/voices")["voices"]:
-            print(v["voice_id"], v["name"], v.get("category", ""))
+        for v in client().voices.get_all().voices:
+            print(v.voice_id, v.name, v.category or "")
         return
 
     dry = "--dry-run" in argv
@@ -57,22 +51,26 @@ def main(argv):
         for n in todo: print(n, names[n - 1] + ".mp3")
         return
 
-    sub = call("GET", "/user/subscription")
-    left = sub["character_limit"] - sub["character_count"]
-    print(f"이번 달 남은 글자 {left}자")
-    if chars > left:
-        sys.exit("남은 글자 수가 모자라 아무것도 만들지 않았습니다.")
+    c = client()
+    try:
+        sub = c.user.subscription.get()
+    except ApiError:   # onboard 로 만든 키는 구독 정보 읽기 권한이 없을 수 있다
+        print("남은 글자 수는 확인하지 못했습니다(키 권한). 그대로 진행합니다.")
+    else:
+        left = sub.character_limit - sub.character_count
+        print(f"이번 달 남은 글자 {left}자")
+        if chars > left:
+            sys.exit("남은 글자 수가 모자라 아무것도 만들지 않았습니다.")
 
     os.makedirs(out, exist_ok=True)
     for n in todo:
         text = lines[n - 1]
-        r = call("POST", f"/text-to-speech/{voice}/with-timestamps",
-                 params={"output_format": "mp3_44100_128"},
-                 json={"text": text, "model_id": MODEL})
+        r = c.text_to_speech.convert_with_timestamps(voice, text=text, model_id=MODEL, language_code="ko",
+                                                     output_format="mp3_44100_128")
         base = f"{out}/{names[n - 1]}"
-        open(base + ".mp3", "wb").write(base64.b64decode(r["audio_base64"]))
-        json.dump({"text": text, "alignment": r["alignment"]}, open(base + ".json", "w", encoding="utf-8"),
-                  ensure_ascii=False)
+        open(base + ".mp3", "wb").write(base64.b64decode(r.audio_base_64))
+        json.dump({"text": text, "model": MODEL, "alignment": r.alignment.model_dump()},
+                  open(base + ".json", "w", encoding="utf-8"), ensure_ascii=False)
         print(n, names[n - 1] + ".mp3")
 
 

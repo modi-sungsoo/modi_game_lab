@@ -8,3 +8,5 @@ __pycache__/
 *.vrew
 youtube/*/modi_tmp/
 youtube/*/*_txt/
+# Local secrets written by `elevenlabs onboard`
+/.env.local
