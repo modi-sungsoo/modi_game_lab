@@ -11,7 +11,8 @@ from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env.local"))
-MODEL = "eleven_v4"   # 최신·최고 품질. 1편 웹 생성 때와 목소리가 다르게 들리면 eleven_multilingual_v2 로 바꿔 비교한다
+MODEL = "eleven_v4"   # 2026-11-23 multilingual_v2 와 비교해 고름 (1편과 길이·음량이 거의 같음)
+TAG = "[speaking quickly] "   # v4 는 speed 설정이 없어 말투 태그로 빠르게 (약 1.13배). 글자 수에 포함돼 과금된다
 
 
 def client():
@@ -22,6 +23,13 @@ def client():
 
 def name(line, suffix):
     return re.sub(r'[\\/:*?"<>|]', "", line).strip() + suffix
+
+
+def strip_tag(a):
+    """글자별 시각에서 앞에 붙인 태그 글자를 빼서 대본 글자와 1:1로 맞춘다."""
+    k = len(TAG)
+    assert "".join(a["characters"][:k]) == TAG, "시각 데이터가 태그로 시작하지 않습니다"
+    return {key: v[k:] for key, v in a.items()}
 
 
 def main(argv):
@@ -44,7 +52,7 @@ def main(argv):
     assert len(set(names)) == len(names), "파일명 중복: 대본에 같은 문장이 있습니다"
     todo = [n for n in (nums or range(1, len(lines) + 1))
             if not os.path.exists(f"{out}/{names[n - 1]}.mp3")]
-    chars = sum(len(lines[n - 1]) for n in todo)
+    chars = sum(len(TAG + lines[n - 1]) for n in todo)
     print(f"만들 줄 {len(todo)}개, {chars}자")
     if dry:
         for n in todo: print(n, names[n - 1] + ".mp3")
@@ -60,11 +68,11 @@ def main(argv):
     os.makedirs(out, exist_ok=True)
     for n in todo:
         text = lines[n - 1]
-        r = c.text_to_speech.convert_with_timestamps(voice, text=text, model_id=MODEL, language_code="ko",
+        r = c.text_to_speech.convert_with_timestamps(voice, text=TAG + text, model_id=MODEL, language_code="ko",
                                                      output_format="mp3_44100_128")
         base = f"{out}/{names[n - 1]}"
         open(base + ".mp3", "wb").write(base64.b64decode(r.audio_base_64))
-        json.dump({"text": text, "model": MODEL, "alignment": r.alignment.model_dump()},
+        json.dump({"text": text, "model": MODEL, "tag": TAG, "alignment": strip_tag(r.alignment.model_dump())},
                   open(base + ".json", "w", encoding="utf-8"), ensure_ascii=False)
         print(n, names[n - 1] + ".mp3")
 
