@@ -9,7 +9,6 @@ API 키는 저장소 루트의 .env.local (ElevenLabs CLI onboard 로 만듦, gi
 import base64, json, os, re, sys
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
-from elevenlabs.core.api_error import ApiError
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env.local"))
 MODEL = "eleven_v4"   # 최신·최고 품질. 1편 웹 생성 때와 목소리가 다르게 들리면 eleven_multilingual_v2 로 바꿔 비교한다
@@ -18,7 +17,7 @@ MODEL = "eleven_v4"   # 최신·최고 품질. 1편 웹 생성 때와 목소리�
 def client():
     if not os.environ.get("ELEVENLABS_API_KEY"):
         sys.exit("ELEVENLABS_API_KEY 가 없습니다. 저장소 루트에서 npx -y @elevenlabs/cli@latest onboard init 을 실행하세요.")
-    return ElevenLabs()
+    return ElevenLabs(api_key=os.environ["ELEVENLABS_API_KEY"])   # SDK 기본값은 import 시점(.env.local 로드 전)에 읽혀 비어 있다
 
 
 def name(line, suffix):
@@ -52,15 +51,11 @@ def main(argv):
         return
 
     c = client()
-    try:
-        sub = c.user.subscription.get()
-    except ApiError:   # onboard 로 만든 키는 구독 정보 읽기 권한이 없을 수 있다
-        print("남은 글자 수는 확인하지 못했습니다(키 권한). 그대로 진행합니다.")
-    else:
-        left = sub.character_limit - sub.character_count
-        print(f"이번 달 남은 글자 {left}자")
-        if chars > left:
-            sys.exit("남은 글자 수가 모자라 아무것도 만들지 않았습니다.")
+    sub = c.user.subscription.get()
+    left = sub.character_limit - sub.character_count
+    print(f"이번 달 남은 글자 {left}자")
+    if chars > left:
+        sys.exit("남은 글자 수가 모자라 아무것도 만들지 않았습니다.")
 
     os.makedirs(out, exist_ok=True)
     for n in todo:
