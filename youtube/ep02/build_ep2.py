@@ -91,7 +91,7 @@ def line_len(i):
     if NAR:
         for suf in ("", "_Modi"):
             p = f"{NAR}/{fname(LINES[i])}{suf}.mp3"
-            if os.path.exists(p): return probe(p) + 0.25
+            if os.path.exists(p): return probe(p) + 0.3
     return 0.125 * len(LINES[i]) + 0.3          # shortcut: 어림치. 나레이션이 나오면 폴더를 줘서 다시 맞춘다
 
 DUR = [line_len(i) for i in range(len(LINES))]
@@ -197,17 +197,20 @@ def cclip(png, out_t, out):
     return push_in(png, out_t, 0.03, out)
 
 parts, cues, t = [], [], 0.0
+clip_marks = []                                   # (시작초, 종류) — 효과음 자리
 for si, (a, b, clips) in enumerate(SCENES):
-    T = sum(DUR[a - 1:b])
+    T = sum(DUR[a - 1:b]); ct = t
     for n in range(a, b + 1):
         cues.append((t, t + DUR[n - 1] - 0.1, LINES[n - 1])); t += DUR[n - 1]
     wsum = sum(c[-2] if c[0] != "c" else c[-1] for c in clips)
     for ci, c in enumerate(clips):
         out = f"{TMP}/s{si:02d}_{ci}.mp4"
         if c[0] == "v": _, src, ss, sd, w, opt = c; vclip(src, ss, sd, T * w / wsum, opt, out)
-        elif c[0] == "z": _, src, tt, box, w, opt = c; zclip(src, tt, box, T * w / wsum, opt, out)
-        else: _, name, w = c; cclip(CARDS[name](), T * w / wsum, out)
-        parts.append(out)
+        elif c[0] == "z":
+            _, src, tt, box, w, opt = c; zclip(src, tt, box, T * w / wsum, opt, out)
+            if box and opt.get("hl", True): clip_marks.append((ct, "prompt"))
+        else: _, name, w = c; cclip(CARDS[name](), T * w / wsum, out); clip_marks.append((ct, "card"))
+        parts.append(out); ct += T * w / wsum
     print(f"장면 {a}-{b}: {T:.1f}s", flush=True)
 
 with open(f"{TMP}/list.txt", "w", encoding="utf-8") as f:
@@ -226,5 +229,41 @@ for i, (a, b, l) in enumerate(cues):
     p = f"{SUBDIR}/{i}.txt"; open(p, "w", encoding="utf-8").write(l)
     vf.append(f"drawtext={FONT}:expansion=none:textfile='{p.replace(':', chr(92) + ':')}':fontsize=54:fontcolor=white:borderw=4:bordercolor=black@0.9:"
               f"box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y=h-text_h-66:enable='between(t,{a:.2f},{b:.2f})'")
-ff(["-i", CLEAN, "-vf", ",".join(vf)], f"{OUT}/2편_편집_자막미리보기.mp4")
+SUBBED = ff(["-i", CLEAN, "-vf", ",".join(vf)], f"{OUT}/2편_편집_자막미리보기.mp4")
 print(f"총 {t:.1f}s, 클린 {probe(CLEAN):.1f}s")
+if not NAR: sys.exit()
+
+# ---------------- 오디오: 나레이션 + 효과음 + BGM(나레이션 때 자동으로 줄임) ----------------
+SFX = "C:/Users/user/Desktop/유튜브/효과음/2편"
+BGM = "C:/Users/user/Desktop/유튜브/배경음악/2편/BGM_Cozy_Workshop.mp3"
+start = lambda n: cues[n - 1][0]                   # n번째 대본 줄이 시작하는 시각
+sfx = [(s, "01_팝_프롬프트", 0.35) for s, k in clip_marks if k == "prompt"] + \
+      [(s, "03_카드_슬라이드", 0.45) for s, k in clip_marks if k == "card"] + [
+    (start(2), "04_반짝_변신", 0.4),               # 기본 도형 → 아트워크
+    (start(5), "05_알림_차임", 0.35), (start(46), "05_알림_차임", 0.35),   # 바로 출시 못 함
+    (start(21), "06_타일_놓기", 0.5),
+    *[(start(n) - 0.3, "02_휙_전환", 0.3) for n in (7, 12, 27, 39, 45, 55)],  # 큰 단락이 바뀌는 곳
+    (t - 3.2, "07_마무리_징글", 0.35)]
+ins, flt, mix = ["-i", BGM], [], []
+for i, (a, b, l) in enumerate(cues):
+    p = next(f"{NAR}/{fname(l)}{s}.mp3" for s in ("", "_Modi") if os.path.exists(f"{NAR}/{fname(l)}{s}.mp3"))
+    ins += ["-i", p]; k = len(ins) // 2 - 1
+    flt.append(f"[{k}:a]aresample=48000,adelay={int(a*1000)}:all=1[n{i}]"); mix.append(f"[n{i}]")
+nar_n = len(mix)
+for i, (s, name, vol) in enumerate(sfx):
+    ins += ["-i", f"{SFX}/{name}.mp3"]; k = len(ins) // 2 - 1
+    flt.append(f"[{k}:a]aresample=48000,volume={vol},adelay={int(max(s, 0)*1000)}:all=1[f{i}]")
+fc = ";".join(flt + [
+    "".join(mix) + f"amix=inputs={nar_n}:normalize=0,asplit=2[nar][key]",
+    "".join(f"[f{i}]" for i in range(len(sfx))) + f"amix=inputs={len(sfx)}:normalize=0[fx]",
+    f"[0:a]aresample=48000,volume=0.22,afade=t=in:d=1.5,afade=t=out:st={t-4:.2f}:d=4,atrim=0:{t:.2f}[bg]",
+    "[bg][key]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[duck]",
+    f"[nar][duck][fx]amix=inputs=3:normalize=0,atrim=0:{t:.2f},loudnorm=I=-14:TP=-1.5:LRA=11[a]"])
+MIX = f"{TMP}/mix.m4a"
+r = subprocess.run(["ffmpeg", "-v", "error", "-y", *ins, "-filter_complex", fc, "-map", "[a]", "-c:a", "aac", "-b:a", "192k", MIX],
+                   capture_output=True, text=True, encoding="utf-8", errors="replace")
+if r.returncode: sys.exit(f"FAIL mix\n{r.stderr[-3000:]}")
+for v, name in ((SUBBED, "2편_최종본_Modi_1080p.mp4"), (CLEAN, "2편_최종본_Modi_1080p_자막없음.mp4")):
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", v, "-i", MIX, "-map", "0:v", "-map", "1:a", "-c", "copy",
+                    "-shortest", "-movflags", "+faststart", f"{OUT}/{name}"], check=True)
+print("완성", f"{OUT}/2편_최종본_Modi_1080p.mp4")
