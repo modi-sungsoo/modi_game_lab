@@ -3,7 +3,7 @@ API 키는 저장소 루트의 .env.local (ElevenLabs CLI onboard 로 만듦, gi
 
 사용:
   python narrate_api.py voices                                   # 내 보이스 이름·ID 목록
-  python narrate_api.py <lines.json> <저장폴더> <voice_id> [줄번호 ...] [--suffix _Modi] [--dry-run]
+  python narrate_api.py <lines.json> <저장폴더> <voice_id> [줄번호 ...] [--suffix _Modi] [--no-tag] [--dry-run]
     줄번호를 안 주면 전체. 이미 있는 파일은 건너뛴다. --dry-run 은 만들 파일과 글자 수만 보여 준다(키 불필요).
 파일 이름은 1편과 같다: '{대본 문장}{suffix}.mp3' (윈도 파일명 금지 문자만 뺌)."""
 import base64, json, os, re, sys
@@ -38,7 +38,9 @@ def main(argv):
             print(v.voice_id, v.name, v.category or "")
         return
 
+    global TAG
     dry = "--dry-run" in argv
+    if "--no-tag" in argv: TAG = ""; argv.remove("--no-tag")   # 말투 태그 없이 기본 속도로 (2편은 사용자가 태그 없는 기본 말투를 골랐다)
     suffix = ""
     if "--suffix" in argv:
         i = argv.index("--suffix"); suffix = argv[i + 1]; del argv[i:i + 2]

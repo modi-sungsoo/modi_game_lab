@@ -87,11 +87,27 @@ fname = lambda l: re.sub(r'[\\/:*?"<>|]', "", l).strip()
 def probe(p):
     return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", p]))
 
+def nar_path(i):
+    return next((f"{NAR}/{fname(LINES[i])}{s}.mp3" for s in ("", "_Modi") if os.path.exists(f"{NAR}/{fname(LINES[i])}{s}.mp3")), None)
+
+def nar_info(p):
+    """(말이 끝나는 초, 음량 보정 dB). 문장 끝 숨소리·잔향은 말소리 평균보다 22dB 이상 작은 꼬리로 보고 잘라낸다.
+    shortcut: 에너지 기준이라 숨소리가 말소리만큼 크면 남는다. 그러면 기준 dB를 올린다."""
+    import numpy as np
+    x = np.frombuffer(subprocess.check_output(["ffmpeg", "-v", "error", "-i", p, "-ac", "1", "-ar", "16000", "-f", "s16le", "-"]),
+                      np.int16).astype(float) / 32768
+    fw = 320; n = len(x) // fw                                  # 20ms 프레임
+    db = 20 * np.log10(np.sqrt((x[:n * fw].reshape(n, fw) ** 2).mean(1)) + 1e-9)
+    speech = db[db > db.max() - 30]
+    level = 10 * np.log10((10 ** (speech / 10)).mean())         # 말소리 구간 평균 음량
+    loud = np.nonzero(db > level - 22)[0]
+    end = (loud[-1] + 1) * fw / 16000 + 0.06
+    return min(end, n * fw / 16000), max(-6, min(6, -20 - level))
+
+NAR_INFO = {i: nar_info(nar_path(i)) for i in range(len(LINES))} if NAR else {}
+
 def line_len(i):
-    if NAR:
-        for suf in ("", "_Modi"):
-            p = f"{NAR}/{fname(LINES[i])}{suf}.mp3"
-            if os.path.exists(p): return probe(p) + 0.3
+    if NAR: return NAR_INFO[i][0] + 0.35
     return 0.125 * len(LINES[i]) + 0.3          # shortcut: 어림치. 나레이션이 나오면 폴더를 줘서 다시 맞춘다
 
 DUR = [line_len(i) for i in range(len(LINES))]
@@ -246,15 +262,16 @@ sfx = [(s, "01_팝_프롬프트", 0.35) for s, k in clip_marks if k == "prompt"]
     (t - 3.2, "07_마무리_징글", 0.35)]
 ins, flt, mix = ["-i", BGM], [], []
 for i, (a, b, l) in enumerate(cues):
-    p = next(f"{NAR}/{fname(l)}{s}.mp3" for s in ("", "_Modi") if os.path.exists(f"{NAR}/{fname(l)}{s}.mp3"))
-    ins += ["-i", p]; k = len(ins) // 2 - 1
-    flt.append(f"[{k}:a]aresample=48000,adelay={int(a*1000)}:all=1[n{i}]"); mix.append(f"[n{i}]")
+    end, gain = NAR_INFO[i]
+    ins += ["-i", nar_path(i)]; k = len(ins) // 2 - 1
+    flt.append(f"[{k}:a]aresample=48000,atrim=0:{end:.3f},afade=t=out:st={max(0, end - 0.08):.3f}:d=0.08,"
+               f"volume={gain:.2f}dB,adelay={int(a*1000)}:all=1[n{i}]"); mix.append(f"[n{i}]")
 nar_n = len(mix)
 for i, (s, name, vol) in enumerate(sfx):
     ins += ["-i", f"{SFX}/{name}.mp3"]; k = len(ins) // 2 - 1
     flt.append(f"[{k}:a]aresample=48000,volume={vol},adelay={int(max(s, 0)*1000)}:all=1[f{i}]")
 fc = ";".join(flt + [
-    "".join(mix) + f"amix=inputs={nar_n}:normalize=0,asplit=2[nar][key]",
+    "".join(mix) + f"amix=inputs={nar_n}:normalize=0,acompressor=threshold=0.1:ratio=3:attack=5:release=120:makeup=1.5,asplit=2[nar][key]",
     "".join(f"[f{i}]" for i in range(len(sfx))) + f"amix=inputs={len(sfx)}:normalize=0[fx]",
     f"[0:a]aresample=48000,volume=0.22,afade=t=in:d=1.5,afade=t=out:st={t-4:.2f}:d=4,atrim=0:{t:.2f}[bg]",
     "[bg][key]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[duck]",
