@@ -4,8 +4,8 @@
 import os, re, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont
 
-SRC = "C:/Users/user/Desktop/유튜브/영상/2편 소스"
-OUT = "C:/Users/user/Desktop/유튜브/영상/2편_편집"
+SRC = "C:/Users/user/Desktop/유튜브/영상/2편_2D 보드게임 3D화/2편 소스"
+OUT = "C:/Users/user/Desktop/유튜브/영상/2편_2D 보드게임 3D화"
 TH = "C:/Users/user/Desktop/유튜브/썸네일/2편"
 FINAL = f"{OUT}/2편_최종본_Modi_1080p_자막없음.mp4"     # 자막 없는 화면 + 최종 오디오
 SRT = f"{OUT}/2편_편집.srt"

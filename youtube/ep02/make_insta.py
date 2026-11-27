@@ -4,7 +4,7 @@
 """
 import os, re, subprocess, sys
 
-OUT = "C:/Users/user/Desktop/유튜브/영상/2편_편집"
+OUT = "C:/Users/user/Desktop/유튜브/영상/2편_2D 보드게임 3D화"
 CLEAN = f"{OUT}/2편_최종본_Modi_1080p_자막없음.mp4"     # 자막 없는 화면 + 최종 오디오
 SUBBED = f"{OUT}/2편_최종본_Modi_1080p.mp4"
 SRT = f"{OUT}/2편_편집.srt"

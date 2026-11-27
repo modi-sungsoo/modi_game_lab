@@ -9,8 +9,8 @@ import json, os, re, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
-SRC = "C:/Users/user/Desktop/유튜브/영상/2편 소스"
-OUT = "C:/Users/user/Desktop/유튜브/영상/2편_편집"
+SRC = "C:/Users/user/Desktop/유튜브/영상/2편_2D 보드게임 3D화/2편 소스"
+OUT = "C:/Users/user/Desktop/유튜브/영상/2편_2D 보드게임 3D화"
 TMP = f"{OUT}/_clips"
 NAR = sys.argv[1] if len(sys.argv) > 1 else None
 W, H, FPS = 1920, 1080, 30
