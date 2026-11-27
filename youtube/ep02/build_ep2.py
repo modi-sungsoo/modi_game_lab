@@ -20,7 +20,8 @@ FONT = "fontfile='C\\:/Windows/Fonts/malgunbd.ttf'"
 for d in (OUT, TMP): os.makedirs(d, exist_ok=True)
 
 D = lambda n: f"{SRC}/디빌 언리얼 개발 과정_{n}.{'mp4' if n in (6, 9, 10) else 'mkv'}"
-P1, P2, ST = f"{SRC}/디빌 언리얼 플레이 장면_1.mkv", f"{SRC}/디빌 언리얼 플레이 장면_2.mkv", f"{SRC}/스팀웍스 등록 과정.mkv"
+P2, ST = f"{SRC}/디빌 언리얼 플레이 장면_2.mkv", f"{SRC}/스팀웍스 등록 과정.mkv"
+BASIC = f"{SRC}/언리얼_02_예고_기본도형.mp4"     # 1920x1080: 0~12.5초 기본 도형, 13초~ 아트워크 타일
 K = 1.6                                           # 1600x900 캡처에서 잰 좌표 → 원본 2560x1440
 k = lambda *v: tuple(int(x * K) for x in v)
 
@@ -34,45 +35,49 @@ D12_BOARD = (640, 300, 1600, 900)
 #       ("z", 소스, 시각, 강조박스(원본좌표), 가중치, 옵션)  정지 화면 확대 (+노란 테두리)
 #       ("c", 카드이름, 가중치)
 SCENES = [
-    (1, 1, [("v", P1, 60, 50, 1, {})]),
-    (2, 2, [("v", P2, 3, 6, 1, {}), ("v", P2, 216, 24, 1.5, {})]),
-    (3, 3, [("z", ST, 62, None, 1, {"blur": ST_BLUR})]),
-    (4, 5, [("z", ST, 62, k(360, 335, 1240, 470), 1, {"blur": ST_BLUR})]),
-    (6, 7, [("v", P2, 48, 82, 1, {})]),
-    (8, 8, [("z", D(2), 862, k(573, 662, 1145, 705), 1, {})]),
-    (9, 9, [("v", D(2), 1290, 70, 1, {})]),
-    (10, 10, [("z", D(3), 30, k(569, 493, 1145, 627), 1, {}), ("v", D(3), 750, 28, 1, {"crop": (90, 101, 2380, 1338)})]),
-    (11, 11, [("z", D(11), 117, k(567, 605, 1145, 671), 1, {})]),
-    (12, 12, [("v", D(11), 130, 170, 1, {})]),
-    (13, 14, [("v", P2, 132, 18, 1, {"crop": BOARD})]),
-    (15, 15, [("v", D(12), 990, 20, 1, {"crop": D12_BOARD})]),
-    (16, 16, [("v", D(12), 900, 60, 1, {"crop": D12_BOARD})]),
-    (17, 19, [("v", D(11), 1920, 12, 1, {"crop": (280, 0, 2000, 1125)})]),
-    (20, 21, [("v", P2, 150, 12, 1, {"crop": BOARD})]),
-    (22, 22, [("z", D(6), 870, k(614, 68, 1049, 315), 1, {"hl": False})]),
+    (1, 1, [("v", BASIC, 0, 12.5, 1, {})]),
+    (2, 2, [("v", BASIC, 13, 10, 1, {})]),
+    (3, 3, [("v", P2, 3, 6, 1, {}), ("v", P2, 216, 24, 1.5, {})]),
+    (4, 4, [("z", ST, 62, None, 1, {"blur": ST_BLUR})]),
+    (5, 6, [("z", ST, 62, k(360, 335, 1240, 470), 1, {"blur": ST_BLUR})]),
+    (7, 8, [("v", P2, 48, 82, 1, {})]),
+    # main 세션 프롬프트: 개발 정책 정리 → 엑셀 데이터 테이블
+    (9, 9, [("z", D(2), 262, k(560, 617, 1145, 706), 1, {}), ("z", D(2), 862, k(573, 662, 1145, 705), 1, {})]),
+    (10, 10, [("v", D(2), 1290, 70, 1, {})]),
+    # main 세션 프롬프트: 웹판 UI 맞추기 → 공유지 처리·선명하게·입체적으로
+    (11, 11, [("z", D(3), 30, k(569, 493, 1145, 627), 1, {}), ("z", D(4), 165, k(830, 617, 1303, 706), 1, {}),
+              ("v", D(3), 750, 28, 1, {"crop": (90, 101, 2380, 1338)})]),
+    (12, 12, [("z", D(11), 117, k(567, 605, 1145, 671), 1, {})]),
+    (13, 13, [("v", D(11), 130, 170, 1, {"crop": (280, 0, 2000, 1125)})]),
+    # 벽 있던 버전: 벽 요청 프롬프트 → 벽에 가린 타일 / 미플이 역세권 벽 뒤에 가린 장면
+    (14, 14, [("z", D(7), 40, k(732, 436, 1303, 500), 1, {}), ("v", D(7), 428, 16, 1.5, {"crop": (700, 479, 1000, 562)})]),
+    (15, 15, [("v", D(8), 665, 10, 1, {"crop": (740, 459, 1000, 562)})]),
+    (16, 16, [("v", D(12), 990, 20, 1, {"crop": D12_BOARD})]),
+    (17, 17, [("v", D(12), 900, 60, 1, {"crop": D12_BOARD})]),
+    (18, 20, [("v", D(11), 1920, 12, 1, {"crop": (280, 0, 2000, 1125)})]),
+    (21, 22, [("v", P2, 150, 12, 1, {"crop": BOARD})]),
     (23, 23, [("v", P2, 165, 8, 1, {"crop": BOARD})]),
     (24, 24, [("v", P2, 160, 10, 1, {"crop": BOARD_NEAR})]),
     (25, 25, [("v", P2, 216, 10, 1, {})]),
-    (26, 26, [("v", P2, 200, 8, 1, {"crop": BOARD_NEAR})]),
+    (26, 26, [("z", D(8), 3, k(720, 617, 1303, 706), 1, {}), ("v", P2, 200, 8, 1, {"crop": BOARD_NEAR})]),
     (27, 27, [("v", P2, 72, 18, 1, {})]),
     (28, 30, [("c", "seat", 1)]),
     (31, 31, [("v", P2, 78, 6, 1, {})]),
     (32, 34, [("c", "opener", 1)]),
-    (35, 36, [("v", P2, 105, 15, 1, {})]),
-    (37, 38, [("c", "meeple", 1)]),
-    (39, 39, [("z", P2, 18, (960, 415, 1630, 1120), 1, {"hl": False})]),
-    (40, 41, [("c", "hard", 1)]),
-    (42, 43, [("v", P2, 3, 8, 1, {})]),
-    (44, 44, [("v", P2, 33, 3, 1, {})]),
-    (45, 45, [("v", P2, 39, 7, 1, {})]),
-    (46, 46, [("v", P2, 12, 14, 1, {})]),
-    (47, 47, [("v", P2, 180, 20, 1, {})]),
-    (48, 48, [("z", ST, 62, None, 1, {"blur": ST_BLUR})]),
-    (49, 51, [("z", ST, 62, k(360, 335, 1240, 470), 1, {"blur": ST_BLUR})]),
-    (52, 52, [("z", ST, 18, k(490, 318, 1092, 382), 1, {})]),
-    (53, 54, [("z", ST, 18, k(490, 608, 1092, 698), 1, {})]),
-    (55, 57, [("z", ST, 18, k(526, 388, 1088, 430), 1, {})]),
-    (58, 60, [("v", P2, 226, 20, 2, {}), ("v", P2, 246, 4, 1, {})]),
+    (35, 35, [("v", P2, 105, 15, 1, {})]),
+    (36, 36, [("z", P2, 18, (960, 415, 1630, 1120), 1, {"hl": False})]),
+    (37, 38, [("c", "hard", 1)]),
+    (39, 40, [("v", P2, 3, 8, 1, {})]),
+    (41, 41, [("v", P2, 33, 3, 1, {})]),
+    (42, 42, [("v", P2, 39, 7, 1, {})]),
+    (43, 43, [("v", P2, 12, 14, 1, {})]),
+    (44, 44, [("v", P2, 180, 20, 1, {})]),
+    (45, 45, [("z", ST, 62, None, 1, {"blur": ST_BLUR})]),
+    (46, 48, [("z", ST, 62, k(360, 335, 1240, 470), 1, {"blur": ST_BLUR})]),
+    (49, 49, [("z", ST, 18, k(490, 318, 1092, 382), 1, {})]),
+    (50, 51, [("z", ST, 18, k(490, 608, 1092, 698), 1, {})]),
+    (52, 54, [("z", ST, 18, k(526, 388, 1088, 430), 1, {})]),
+    (55, 59, [("v", P2, 226, 20, 2, {}), ("v", P2, 246, 4, 1, {})]),
 ]
 
 # ---------------- 줄 길이 ----------------
@@ -102,28 +107,23 @@ def bars(name, title, sub, labels, vals, ref=None, ref_label="", hi=None, unit="
     im = Image.new("RGB", (W, H), BG); g = ImageDraw.Draw(im)
     g.rounded_rectangle((160, 90, W - 160, H - 90), 36, fill=CARD)
     g.text((240, 150), title, font=F(64), fill=INK); g.text((240, 240), sub, font=F(36, False), fill=SUB)
-    x0, base, top = 300, 900, 360; bw, gap = 220, (W - 600 - 220 * len(vals)) // max(1, len(vals) - 1)
-    vmax = max(vals + ([ref] if ref else [])) * 1.15
+    # 막대는 왼쪽 영역, 기준선 이름은 오른쪽 여백에 따로 둬서 숫자와 겹치지 않게 한다
+    x0, x1, base, top = 280, W - 520, 780, 360
+    bw = 200; gap = (x1 - x0 - bw * len(vals)) // max(1, len(vals) - 1) if len(vals) > 1 else 0
+    if len(vals) == 2: x0, gap = x0 + 150, x1 - x0 - 300 - 2 * bw
+    vmax = max(vals + ([ref] if ref else [])) * 1.12
     y = lambda v: base - (base - top) * v / vmax
+    if ref:   # 기준 점선을 먼저 그리고, 막대와 숫자 상자가 그 위를 덮는다
+        for xx in range(240, x1 + 40, 36): g.line((xx, y(ref), xx + 20, y(ref)), fill=SUB, width=3)
+        g.text((x1 + 70, y(ref)), ref_label, font=F(40), fill=SUB, anchor="lm")
     for i, (lab, v) in enumerate(zip(labels, vals)):
         x = x0 + i * (bw + gap); c = ACC if i == hi else (150, 160, 150)
         g.rectangle((x, y(v), x + bw, base), fill=c)
-        t = f"{v:g}{unit}"; g.text((x + bw / 2, y(v) - 14), t, font=F(48), fill=INK, anchor="md")
-        g.text((x + bw / 2, base + 20), lab, font=F(38), fill=INK, anchor="ma")
-    g.line((260, base, W - 260, base), fill=LINE, width=4)
-    if ref:
-        for xx in range(260, W - 260, 40): g.line((xx, y(ref), xx + 22, y(ref)), fill=INK, width=4)
-        g.text((W - 260, y(ref) - 12), ref_label, font=F(32), fill=INK, anchor="rd")
-    p = f"{TMP}/card_{name}.png"; im.save(p); return p
-
-def text_card(name, title, rows):
-    im = Image.new("RGB", (W, H), BG); g = ImageDraw.Draw(im)
-    g.rounded_rectangle((160, 90, W - 160, H - 90), 36, fill=CARD)
-    g.text((W / 2, 300), title, font=F(64), fill=INK, anchor="mm")
-    for i, (lab, val, c) in enumerate(rows):
-        yy = 520 + i * 170
-        g.text((W / 2 - 40, yy), lab, font=F(56, False), fill=SUB, anchor="rm")
-        g.text((W / 2 + 40, yy), val, font=F(72), fill=c, anchor="lm")
+        t = f"{v:g}{unit}"; tb = g.textbbox((x + bw / 2, y(v) - 18), t, font=F(50), anchor="md")
+        g.rounded_rectangle((tb[0] - 14, tb[1] - 10, tb[2] + 14, tb[3] + 10), 12, fill=CARD)
+        g.text((x + bw / 2, y(v) - 18), t, font=F(50), fill=ACC if i == hi else INK, anchor="md")
+        g.text((x + bw / 2, base + 22), lab, font=F(40), fill=INK, anchor="ma")
+    g.line((240, base, x1 + 40, base), fill=LINE, width=4)
     p = f"{TMP}/card_{name}.png"; im.save(p); return p
 
 CARDS = {   # 수치 출처: 언리얼 저장소 Docs/TurnOrderBalance.md, AIDesign.md
@@ -131,7 +131,6 @@ CARDS = {   # 수치 출처: 언리얼 저장소 Docs/TurnOrderBalance.md, AIDes
                          ["1번", "2번", "3번", "4번"], [21.2, 22.7, 30.5, 25.6], 25, "공정 25%", hi=2),
     "opener": lambda: bars("opener", "시민 경매, 누가 가져갔나", "경매를 연 사람 기준 (4인 기본)",
                            ["연 사람", "다음", "그다음", "마지막"], [7, 12, 35, 46], hi=3),
-    "meeple": lambda: text_card("meeple", "시민 미플 개수", [("룰북", "4개", INK), ("게임", "5개 → 4개", ACC)]),
     "hard": lambda: bars("hard", "어려움 AI 1 vs 보통 AI 3", "4인전 우승률",
                          ["어려움 AI", "보통 AI (평균)"], [36, 21.3], 25, "공정 25%", hi=0),
 }
@@ -166,23 +165,36 @@ def zclip(src, t, box, out_t, opt, out):
         w = max(int((x1 - x0) * 1.3), 900); w -= w % 2; h = int(w * 9 / 16); h -= h % 2
         if h < (y1 - y0) * 1.3: h = int((y1 - y0) * 1.3) // 2 * 2; w = int(h * 16 / 9) // 2 * 2
         cx = int(min(max((x0 + x1) / 2 - w / 2, 0), 2560 - w)); cy = int(min(max((y0 + y1) / 2 - h / 2, 0), 1440 - h))
-        s = W / w; pad = 14
-        crop = f"crop={w}:{h}:{cx}:{cy},scale={W}:{H}:flags=lanczos,setsar=1"
+        s = 2 * W / w; pad = 14
+        crop = f"crop={w}:{h}:{cx}:{cy},scale={2*W}:{2*H}:flags=lanczos,setsar=1"
         if opt.get("hl", True):
             crop += (f",drawbox=x={int((x0 - pad - cx) * s)}:y={int((y0 - pad - cy) * s)}:"
-                     f"w={int((x1 - x0 + 2 * pad) * s)}:h={int((y1 - y0 + 2 * pad) * s)}:color={HL}:t=9")
+                     f"w={int((x1 - x0 + 2 * pad) * s)}:h={int((y1 - y0 + 2 * pad) * s)}:color={HL}:t=18")
     else:
-        crop = f"scale={W}:{H}:flags=lanczos,setsar=1"
-    n = int(out_t * FPS) + 1
-    zoom = f"scale={W*2}:{H*2},zoompan=z='1+0.04*on/{n}':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d={n}:s={W}x{H}:fps={FPS}"
-    fc = ";".join(chain + [f"{f}{crop},trim=end_frame=1,{zoom}[v]"])
-    return ff(["-ss", str(t), "-i", src, "-filter_complex", fc, "-map", "[v]", "-t", f"{out_t:.3f}"], out)
+        crop = f"scale={2*W}:{2*H}:flags=lanczos,setsar=1"
+    still = out[:-4] + ".png"
+    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(t), "-i", src, "-filter_complex",
+                        ";".join(chain + [f"{f}{crop}[v]"]), "-map", "[v]", "-frames:v", "1", still], capture_output=True, text=True)
+    if r.returncode: sys.exit(f"FAIL {still}\n{r.stderr}")
+    return push_in(still, out_t, 0.04, out)
+
+def push_in(png, out_t, zmax, out):
+    """천천히 다가가는 확대. ffmpeg zoompan은 프레임마다 정수 픽셀로 반올림해 흔들리므로,
+    Pillow로 소수점 좌표 그대로 잘라 프레임을 만든다."""
+    img = Image.open(png).convert("RGB"); iw, ih = img.size
+    n = round(out_t * FPS)
+    p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
+                          "-r", str(FPS), "-i", "-", *ENC, out], stdin=subprocess.PIPE)
+    for i in range(n):
+        z = 1 + zmax * i / max(1, n - 1); cw, ch = iw / z, ih / z
+        box = ((iw - cw) / 2, (ih - ch) / 2, (iw + cw) / 2, (ih + ch) / 2)
+        p.stdin.write(img.transform((W, H), Image.EXTENT, box, Image.BICUBIC).tobytes())
+    p.stdin.close()
+    if p.wait(): sys.exit(f"FAIL {out}")
+    return out
 
 def cclip(png, out_t, out):
-    n = int(out_t * FPS) + 1
-    return ff(["-loop", "1", "-t", f"{out_t:.3f}", "-i", png, "-vf",
-               f"scale={W*2}:{H*2},zoompan=z='1+0.03*on/{n}':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d={n}:s={W}x{H}:fps={FPS}",
-               "-t", f"{out_t:.3f}"], out)
+    return push_in(png, out_t, 0.03, out)
 
 parts, cues, t = [], [], 0.0
 for si, (a, b, clips) in enumerate(SCENES):
